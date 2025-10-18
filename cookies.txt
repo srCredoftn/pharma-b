@@ -1,0 +1,5 @@
+# HTTrack Website Copier Cookie File
+# This file format is compatible with Netscape cookies
+pharmaciecourcelles-demours-paris.mesoigner.fr	TRUE	/	FALSE	1999999999	PHPSESSID	a1m51s27atl9ob3093n0sj8351
+pharmaciecourcelles-demours-paris.mesoigner.fr	TRUE	/	FALSE	1999999999	samesite	lax
+
