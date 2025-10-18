@@ -5,6 +5,20 @@ Cahier des charges – Plateforme e‑commerce pharmacie (Laravel)
 - Offrir un back‑office (dashboard) pour administrer produits, catégories, utilisateurs, commandes, ordonnances, articles, statistiques.
 - Respecter RGPD, sécurité, traçabilité, performance, SEO et accessibilité.
 
+1bis) Paramétrage Bénin (Phase 0)
+- Dénomination: Pharmacie Camp Guézo
+- Coordonnées: +229 0121 31 35 55, info@pharmaciecampguezo.net
+- Localisation: Cotonou, République du Bénin (fr-BJ)
+- Identité visuelle: logo pharmacie (bol d’Hygie), drapeau Bénin; mise à jour en-têtes/pieds de page, suppression des mentions France/Paris
+- Devise: XOF (CFA) par défaut; format monétaire et séparateurs adaptés
+- Locale & fuseau: fr-BJ, Africa/Porto-Novo (dates, nombres)
+- SEO local: titres/meta/sitemaps avec Cotonou/Bénin; rich snippets adaptés
+- Paiements prioritaires: FedaPay (MTN, Moov, Celtiis + cartes), UBA (cartes); Stripe pour international; clés sandbox/production à fournir ultérieurement
+- Livraison: zones nationales Bénin, barèmes XOF; retrait en officine optionnel
+- Légal: CGV/Confidentialité/mentions légales conformes Bénin; mentions sanitaires locales
+- Formulaires: masque téléphone +229, champs adresse adaptés (quartier, commune), Google Maps Bénin
+- Données initiales: marques/produits locales, taxes locales; retrait des contenus spécifiques à la France
+
 2) Périmètre fonctionnel
 2.1 Produits (Admin)
 - CRUD produits (nom, slug, description courte/longue, marque, prix TTC/HT, stock, références SKU/EAN, statut publication, attributs).
@@ -60,7 +74,7 @@ Cahier des charges – Plateforme e‑commerce pharmacie (Laravel)
 - Envoi d’ordonnance autonome (création demande + pièces jointes) avec suivi par l’utilisateur.
 
 3) Architecture & technologies
-- Laravel 11, PHP 8.2+, MySQL/PostgreSQL (préférence PostgreSQL), Redis (cache/queues), Horizon.
+- Laravel 11, PHP 8.2+, MySQL/PostgreSQL (préférence PostgreSQL), Redis (cache/queues), Horizon; locale=fr-BJ, timezone=Africa/Porto-Novo, currency=XOF.
 - Admin: FilamentPHP 3 (CRUD rapides, tableaux, filtres, charts) ou Blade custom si requis.
 - Auth: Laravel Breeze (Blade) + Sanctum; Autorisation: spatie/laravel‑permission.
 - Médias: spatie/laravel‑medialibrary (conversion images responsive, galeries).
