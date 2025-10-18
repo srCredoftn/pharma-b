@@ -1,0 +1,207 @@
+Cahier des charges – Plateforme e‑commerce pharmacie (Laravel)
+
+1) Contexte et objectifs
+- Mettre en place une application Laravel 11 (PHP ≥ 8.2) pour gérer un catalogue parapharmacie/médicaments OTC, commandes, ordonnances, paiements, livraisons, contenus (actualités/conseils) et rendez‑vous.
+- Offrir un back‑office (dashboard) pour administrer produits, catégories, utilisateurs, commandes, ordonnances, articles, statistiques.
+- Respecter RGPD, sécurité, traçabilité, performance, SEO et accessibilité.
+
+1bis) Paramétrage Bénin (Phase 0)
+- Dénomination: Pharmacie Camp Guézo
+- Coordonnées: +229 0121 31 35 55, info@pharmaciecampguezo.net
+- Localisation: Cotonou, République du Bénin (fr-BJ)
+- Identité visuelle: logo pharmacie (bol d’Hygie), drapeau Bénin; mise à jour en-têtes/pieds de page, suppression des mentions France/Paris
+- Devise: XOF (CFA) par défaut; format monétaire et séparateurs adaptés
+- Locale & fuseau: fr-BJ, Africa/Porto-Novo (dates, nombres)
+- SEO local: titres/meta/sitemaps avec Cotonou/Bénin; rich snippets adaptés
+- Paiements prioritaires: FedaPay (MTN, Moov, Celtiis + cartes), UBA (cartes); Stripe pour international; clés sandbox/production à fournir ultérieurement
+- Livraison: zones nationales Bénin, barèmes XOF; retrait en officine optionnel
+- Légal: CGV/Confidentialité/mentions légales conformes Bénin; mentions sanitaires locales
+- Formulaires: masque téléphone +229, champs adresse adaptés (quartier, commune), Google Maps Bénin
+- Données initiales: marques/produits locales, taxes locales; retrait des contenus spécifiques à la France
+
+2) Périmètre fonctionnel
+2.1 Produits (Admin)
+- CRUD produits (nom, slug, description courte/longue, marque, prix TTC/HT, stock, références SKU/EAN, statut publication, attributs).
+- Catégories hiérarchiques jusqu’à 4 niveaux; affectation multiple produit↔catégorie.
+- Gestion des marques; filtres et pages dédiées.
+- Upload images produits (vignette + galerie), génération de formats responsive.
+- Tarification promo, badges, disponibilité, variantes simples (ex: volume/couleur si utile).
+
+2.2 Catalogue & Recherche
+- Listing par catégories avec pagination, tri (prix, nouveautés, popularité), filtres (catégories, marques, prix).
+- Recherche full‑text + autocomplete/completion; sur nom, marque, catégories, références.
+- Pages marque et pages catégorie indexables (SEO), fil d’Ariane.
+
+2.3 Authentification & rôles
+- Inscription/connexion, reset mot de passe, e‑mail verification.
+- Sessions web (Sanctum) et API tokens (Sanctum) si front séparé.
+- Rôles: client, pharmacien, admin; permissions fines (spatie/laravel‑permission).
+
+2.4 Panier & Commandes
+- Panier persistant (invité → utilisateur après login); ajouter/modifier/supprimer lignes, coupons (optionnel).
+- Calcul sous‑total, taxes, frais de livraison; validation stock au checkout.
+- Checkout: adresse(s), mode livraison, paiement, confirmation; création commande + lignes.
+- Historique commandes par utilisateur; e‑mails transactionnels.
+
+2.5 Ordonnances (prioritaire)
+- Upload ordonnances (PDF/JPG/PNG), métadonnées (nom, date, notes) et association à une commande.
+- Stockage sécurisé (Storage S3/MinIO/chiffrage au repos), accès restreint (pharmacien/admin).
+- Workflow: statut {reçue, validée, rejetée, traitée}; commentaires internes.
+- Dashboard pharmacien: file de traitement, recherche, filtres par statut/date.
+
+2.6 Paiement
+- Passerelles: FedaPay (Mobile Money MTN, Moov, Celtiis + cartes), UBA (cartes locales/UBA), Stripe (cartes internationales) ; fallback CinetPay/Flutterwave.
+- Devise/pays: XOF (Bénin) par défaut; multi‑devises extensible.
+- Abstraction PaymentProvider (FedaPay, UBA, Stripe) avec logique commune: création intent/session, confirmation, annulation, remboursement partiel/total.
+- Webhooks par provider (signature, idempotency) → mise à jour commande (paid, failed, canceled), journalisation et réconciliation.
+- Génération reçu/facture PDF, e‑mail, espace client après paiement confirmé.
+- Variables .env (sandbox/production) prévues; clés à fournir ultérieurement.
+
+2.7 Livraison
+- Paramétrage zones/tarifs; calcul frais selon poids/montant/transporteur.
+- Suivi colis (champ tracking + lien transporteur); états d’expédition.
+
+2.8 Newsletter/Actualités/Conseils
+- CRUD articles (titre, slug, chapeau, contenu, image à la une, catégories éditoriales, tags, auteur, statut, date de publication).
+- Flux RSS publics par rubrique.
+
+2.9 Admin Dashboard
+- Produits, catégories, marques; commandes, ordonnances; utilisateurs/roles; articles; paramètres.
+- Statistiques: ventes, panier moyen, ruptures, top produits, trafic (via intégration GA4/Simple Analytics en option).
+
+2.10 Services
+- Rendez‑vous: type de service, créneaux, formulaire, confirmation et rappel.
+- Envoi d’ordonnance autonome (création demande + pièces jointes) avec suivi par l’utilisateur.
+
+3) Architecture & technologies
+- Laravel 11, PHP 8.2+, MySQL/PostgreSQL (préférence PostgreSQL), Redis (cache/queues), Horizon; locale=fr-BJ, timezone=Africa/Porto-Novo, currency=XOF.
+- Admin: FilamentPHP 3 (CRUD rapides, tableaux, filtres, charts) ou Blade custom si requis.
+- Auth: Laravel Breeze (Blade) + Sanctum; Autorisation: spatie/laravel‑permission.
+- Médias: spatie/laravel‑medialibrary (conversion images responsive, galeries).
+- Recherche: Laravel Scout + Meilisearch (préféré) ou Algolia; fallback SQL LIKE.
+- Paiement: FedaPay (API), UBA (cartes), Stripe (stripe/stripe‑php); webhooks par provider; abstraction PaymentProvider.
+- Files: Storage S3/MinIO pour ordonnances (chiffrement côté serveur), URLs signées.
+- Files PDF: dompdf/snappy pour facture.
+- Mails/Notifications: mailables + queues; templates Blade.
+- API REST JSON (resources/transformers), versionnée (/api/v1), protégée par Sanctum.
+
+4) Modèle de données (tables principales)
+- users(id, name, email, email_verified_at, password, phone, roles…)
+- roles, permissions, model_has_roles, role_has_permissions (spatie)
+- brands(id, name, slug, description, logo_media_id)
+- categories(id, name, slug, parent_id, depth, description, is_active, path)
+- products(id, name, slug, brand_id, short_desc, long_desc, sku, ean, price_ht, price_ttc, tax_rate, stock, is_active, published_at)
+- product_category(product_id, category_id)
+- media(id, model_type, model_id, collection, file_name, disk, conversions)
+- carts(id, user_id|null, session_id, currency, coupon_code, subtotal, tax_total, shipping_total, grand_total)
+- cart_items(id, cart_id, product_id, quantity, unit_price, total)
+- orders(id, user_id, number, status, currency, subtotal, tax_total, shipping_total, discount_total, grand_total, paid_at)
+- order_items(id, order_id, product_id, name, sku, unit_price, quantity, total, tax_rate)
+- addresses(id, user_id|null, order_id|null, type{billing,shipping}, first_name, last_name, address1, address2, zip, city, country, phone)
+- prescriptions(id, order_id|null, user_id, status, notes_internal, uploaded_by, file_path, file_disk, verified_by, verified_at, rejected_by, rejected_at)
+- payments(id, order_id, provider{stripe|paypal}, intent_id, status, amount, payload)
+- shipments(id, order_id, carrier, tracking_number, status, shipped_at)
+- posts(id, type{news,advice}, title, slug, excerpt, content, cover_media_id, status, published_at, author_id)
+- appointments(id, user_id, service_type, starts_at, ends_at, notes, status)
+- settings(key, value JSON)
+- webhooks(id, provider, event, payload, processed_at, status)
+Indexation: slugs uniques, full‑text sur products(name, brand), posts(title, content), index sur status/dates.
+
+5) Règles métiers clés
+- Stock: décrément après paiement validé; verrouillage de stock à l’étape paiement (optionnel) avec TTL.
+- Prix: source unifiée (HT+TVA ou TTC + taux), cohérence des arrondis; promotions datées.
+- Ordonnances: visibles uniquement par pharmacien/admin; traçabilité des changements de statut.
+- Retours/annulations: états commande; remboursements partiels (Stripe) en option.
+
+6) Endpoints principaux (API v1 – exemple)
+- Auth: POST /api/v1/auth/register, /login, POST /logout, GET /me
+- Catalogue: GET /categories, GET /categories/{slug}, GET /products?filters…, GET /products/{slug}
+- Recherche: GET /search?q=…, GET /search/autocomplete?q=…
+- Marques: GET /brands, GET /brands/{slug}
+- Panier: GET/PUT /cart, POST /cart/items, PATCH /cart/items/{id}, DELETE /cart/items/{id}
+- Checkout: POST /checkout (validation, création order draft)
+- Paiement: POST /payments/intent, POST /webhooks/{provider}
+- Commandes: GET /orders, GET /orders/{number}
+- Ordonnances: POST /prescriptions (upload), GET /prescriptions/{id} (protégé), PATCH /prescriptions/{id}
+- Articles: GET /posts?type=news|advice, GET /posts/{slug}, GET /rss/{type}
+- Rendez‑vous: POST /appointments, GET /appointments (user), Admin CRUD via back‑office.
+
+7) Authentification & autorisation
+- Sanctum pour API tokens; cookies sécurisés pour sessions web.
+- spatie/laravel‑permission: rôles client, pharmacien, admin; politiques (Policies) sur ressources sensibles (orders, prescriptions, posts).
+
+8) Back‑office
+- Filament: ressources Produits, Catégories, Marques, Utilisateurs, Commandes, Ordonnances, Articles, Paramètres.
+- Listes avec filtres, tri, recherche; formulaires validés server‑side.
+- Tableaux de bord: cartes KPI (CA, commandes, panier moyen), graphiques (ligne/barres), alertes stock.
+
+9) Ordonnances – workflow détaillé
+- Upload par client: formulaire dédié (drag&drop), extension vérifiée, taille max, scan antivirus (option ClamAV service).
+- File pharmacien: états, affectation, horodatage; actions: valider, rejeter (motif), marquer traitée.
+- Lien commande: si ordonnance reçue avant achat, association au checkout; sinon post‑achat.
+
+10) Paiement – flux
+- Le client choisit un moyen de paiement (FedaPay: MTN/Moov/Celtiis/cartes; UBA cartes; Stripe cartes).
+- Backend crée l’intent/session auprès du provider choisi; retourne les références/URL de redirection si nécessaire.
+- Le client confirme (USSD/push Mobile Money ou carte). Le provider notifie via webhook signé.
+- Webhook: vérification signature/idempotency, validation montants/devise, mise à jour commande → paid/failed/canceled, décrément stock, envoi e‑mails, génération facture PDF.
+- Remboursements/annulations et réconciliation quotidienne par provider.
+
+11) Livraison – flux
+- Sélection mode livraison; calcul frais; génération étiquette (intégration transporteur optionnelle); suivi (tracking URL).
+
+12) Contenus & RSS
+- Editeur WYSIWYG sécurisé (Tiptap/EditorJS/Trumbowyg) côté admin; sanitation HTML.
+- Flux RSS par type; pages listes et détail SEO‑friendly.
+
+13) Sécurité & conformité
+- Chiffrement au repos des ordonnances (S3 SSE); URLs signées expirables; contrôle d’accès strict.
+- Protection CSRF/XSS/SQLi; validation server‑side; headers de sécurité (CSP, HSTS, etc.).
+- Journal d’audit (actions admin sensibles: ordonnances, remboursements).
+- RGPD: consentement cookies, politique de conservation, droit d’accès/suppression.
+
+14) Performance & SEO
+- Caches (config, routes, vues), HTTP caching (ETag/Last‑Modified) pour API catalogue.
+- Indexation progressive: sitemaps catégories/produits/articles; microdonnées schema.org (Product, Article, BreadcrumbList).
+
+15) Journalisation & Monitoring
+- Monolog vers fichiers + rotation; canaux dédiés (webhooks, paiements, ordonnances).
+- Horizon pour jobs; rapports d’échecs; intégration Sentry (option).
+
+16) Tests & Qualité
+- Tests unitaires (modèles, règles), tests API (Feature), tests E2E (Pest + Laravel Dusk en option).
+- Vérifications sécurité (Semgrep option), CI automatique.
+
+17) CI/CD & Déploiement
+- Pipelines: lint, tests, build assets, migrations, seeding, cache:clear, horizon:terminate.
+- Environnements: local, staging, production; variables via .env (jamais commit).
+
+18) Migration depuis le site existant
+- Inventaire URLs principales et catégories; mapping vers nouvelles routes.
+- Script d’import des marques, catégories (arborescence 4 niveaux), produits si données sources disponibles.
+- Redirections 301 depuis anciennes URLs.
+
+19) Planning & jalons (indicatif)
+- S1: Setup projet, Auth, Rôles, Marques/Catégories/Produits (CRUD + médias).
+- S2: Catalogue public, Recherche + autocomplete (Scout), Panier.
+- S3: Checkout, Paiement Stripe, Commandes, Facture PDF.
+- S4: Ordonnances (upload + workflow), Dashboard pharmacien.
+- S5: Livraison (tarifs + tracking), Articles + RSS.
+- S6: Rendez‑vous, Stats dashboard, SEO, RGPD, tests E2E.
+
+20) Critères d’acceptation (extraits)
+- CRUD complets et sécurisés pour Produits/Catégories/Marques.
+- Recherche avec autocomplete en <150 ms p95 (staging), pagination correcte.
+- Checkout robuste: validation stock, paiement, facture PDF, e‑mails.
+- Ordonnances: upload sécurisé, workflow complet, contrôle d’accès vérifié.
+- Admin: visibilité en temps réel des ordonnances et commandes; filtres efficaces.
+
+21) Hors périmètre (v1)
+- Dossier patient partagé, téléconsultation, ERP/stock temps réel magasin, marketplace multi‑vendeurs.
+
+22) Questions ouvertes
+- Transporteurs cibles et règles tarifaires exactes ?
+- Taux TVA par produit (unique 20% ou variable) ?
+- Contenu initial (articles) à migrer et source des données produits ?
+- Nécessité d’Algolia/Meilisearch managé ou hébergé en interne ?
+- Besoin d’une application mobile ou PWA (push) ?
