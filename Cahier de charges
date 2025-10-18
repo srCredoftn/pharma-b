@@ -36,9 +36,12 @@ Cahier des charges – Plateforme e‑commerce pharmacie (Laravel)
 - Dashboard pharmacien: file de traitement, recherche, filtres par statut/date.
 
 2.6 Paiement
-- Stripe (carte) v1; PayPal en option.
-- Validation paiement (webhooks), idempotency, gestion échecs/annulations.
-- Génération reçu/facture PDF, envoi e‑mail et mise à disposition dans l’espace client.
+- Passerelles: FedaPay (Mobile Money MTN, Moov, Celtiis + cartes), UBA (cartes locales/UBA), Stripe (cartes internationales) ; fallback CinetPay/Flutterwave.
+- Devise/pays: XOF (Bénin) par défaut; multi‑devises extensible.
+- Abstraction PaymentProvider (FedaPay, UBA, Stripe) avec logique commune: création intent/session, confirmation, annulation, remboursement partiel/total.
+- Webhooks par provider (signature, idempotency) → mise à jour commande (paid, failed, canceled), journalisation et réconciliation.
+- Génération reçu/facture PDF, e‑mail, espace client après paiement confirmé.
+- Variables .env (sandbox/production) prévues; clés à fournir ultérieurement.
 
 2.7 Livraison
 - Paramétrage zones/tarifs; calcul frais selon poids/montant/transporteur.
@@ -62,7 +65,7 @@ Cahier des charges – Plateforme e‑commerce pharmacie (Laravel)
 - Auth: Laravel Breeze (Blade) + Sanctum; Autorisation: spatie/laravel‑permission.
 - Médias: spatie/laravel‑medialibrary (conversion images responsive, galeries).
 - Recherche: Laravel Scout + Meilisearch (préféré) ou Algolia; fallback SQL LIKE.
-- Paiement: stripe/stripe‑php; Webhooks contrôleur dédié.
+- Paiement: FedaPay (API), UBA (cartes), Stripe (stripe/stripe‑php); webhooks par provider; abstraction PaymentProvider.
 - Files: Storage S3/MinIO pour ordonnances (chiffrement côté serveur), URLs signées.
 - Files PDF: dompdf/snappy pour facture.
 - Mails/Notifications: mailables + queues; templates Blade.
@@ -103,7 +106,7 @@ Indexation: slugs uniques, full‑text sur products(name, brand), posts(title, c
 - Marques: GET /brands, GET /brands/{slug}
 - Panier: GET/PUT /cart, POST /cart/items, PATCH /cart/items/{id}, DELETE /cart/items/{id}
 - Checkout: POST /checkout (validation, création order draft)
-- Paiement: POST /payments/intent, POST /webhooks/stripe
+- Paiement: POST /payments/intent, POST /webhooks/{provider}
 - Commandes: GET /orders, GET /orders/{number}
 - Ordonnances: POST /prescriptions (upload), GET /prescriptions/{id} (protégé), PATCH /prescriptions/{id}
 - Articles: GET /posts?type=news|advice, GET /posts/{slug}, GET /rss/{type}
@@ -124,8 +127,11 @@ Indexation: slugs uniques, full‑text sur products(name, brand), posts(title, c
 - Lien commande: si ordonnance reçue avant achat, association au checkout; sinon post‑achat.
 
 10) Paiement – flux
-- Création intent Stripe côté serveur; retour client → confirmation; webhook capture/validation; mutation commande → paid.
-- Stock, e‑mails, facture PDF déclenchés après webhook confirmé.
+- Le client choisit un moyen de paiement (FedaPay: MTN/Moov/Celtiis/cartes; UBA cartes; Stripe cartes).
+- Backend crée l’intent/session auprès du provider choisi; retourne les références/URL de redirection si nécessaire.
+- Le client confirme (USSD/push Mobile Money ou carte). Le provider notifie via webhook signé.
+- Webhook: vérification signature/idempotency, validation montants/devise, mise à jour commande → paid/failed/canceled, décrément stock, envoi e‑mails, génération facture PDF.
+- Remboursements/annulations et réconciliation quotidienne par provider.
 
 11) Livraison – flux
 - Sélection mode livraison; calcul frais; génération étiquette (intégration transporteur optionnelle); suivi (tracking URL).
